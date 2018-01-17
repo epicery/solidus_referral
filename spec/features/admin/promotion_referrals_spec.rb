@@ -37,6 +37,10 @@ describe "Promotion Adjustments", type: :feature, js: true do
       select "Add store credit to referrer", from: "Add action of type"
       within('#action_fields') { click_button "Add" }
 
+      # Verify admin can change the default amount
+      amount_field = find('input[id^="promotion_promotion_actions_attributes_"][id$="_preferred_amount"]')
+      amount_field.set(5.0)
+
       within('#action_fields') { click_button "Update" }
 
       expect(page).to have_content('Add store credit to referrer')
@@ -51,6 +55,7 @@ describe "Promotion Adjustments", type: :feature, js: true do
       )
 
       expect(promotion.actions.first).to be_a(Spree::Promotion::Actions::AddStoreCreditToReferrer)
+      expect(promotion.actions.first.preferred_amount).to eql(5.0)
     end
   end
 end

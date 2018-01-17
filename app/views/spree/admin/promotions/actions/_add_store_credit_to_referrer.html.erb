@@ -1,0 +1,11 @@
+<div class="col-12">
+  <div class="row">
+    <div class="col-12">
+      <div class="field">
+        <% field_name = "#{param_prefix}[preferred_amount]" %>
+        <%= label_tag field_name, Spree.t(:amount) %>
+        <%= number_field_tag field_name, promotion_action.preferred_amount, class: "fullwidth", min: 1 %>
+      </div>
+    </div>
+  </div>
+</div>
