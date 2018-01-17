@@ -17,6 +17,7 @@ require File.expand_path('../dummy/config/environment.rb', __FILE__)
 
 require 'rspec/rails'
 require 'rspec-activemodel-mocks'
+require 'capybara-webkit'
 require 'database_cleaner'
 require 'ffaker'
 require 'pry-rails'
@@ -35,6 +36,8 @@ require 'spree/testing_support/url_helpers'
 
 # Requires factories defined in lib/solidus_referral/factories.rb
 require 'solidus_referral/factories'
+
+Capybara.javascript_driver = :webkit
 
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods

@@ -2,7 +2,12 @@
 # See https://github.com/svenfuchs/rails-i18n/tree/master/rails%2Flocale for starting points.
 
 en:
-  hello: Hello world
+  activerecord:
+    attributes:
+      spree/promotion/rules/user_is_referred:
+        description: User must be referred
+      spree/promotion/actions/add_store_credit_to_referrer:
+        description: Add store credit to referrer
   spree:
     eligibility_errors:
       messages:
