@@ -1,11 +1,10 @@
 require 'spec_helper'
 
 describe 'Add store credit to referrer on first order' do
-  let(:user) { create(:user) }
-  let!(:referrer) { create(:user, referred_users: [user]) }
+  let(:referrer) { create(:user) }
+  let(:user) { create(:user, referrer: referrer) }
 
-  let!(:first_order) { create(:completed_order_with_totals, user: user) }
-  let(:second_order) { create(:order, user: user)}
+  let(:uncompleted_order) { create(:order, user: user)}
 
   let!(:store_credit_type) { create(:secondary_credit_type) }
   let!(:store_credit_category) { create(:store_credit_category, name: 'Default') }
@@ -17,31 +16,52 @@ describe 'Add store credit to referrer on first order' do
 
   let!(:promotion) { create(:promotion, promotion_rules: [user_is_referred_rule, first_order_rule], promotion_actions: [credit_referrer_action]) }
 
-  context 'when the user is referred and orders for the first time' do
-    subject { promotion.eligible?(first_order) }
+  describe 'when a user orders' do
+    context 'when the user has already ordered at least once' do
+      let!(:completed_order) { create(:completed_order_with_totals, user: user) }
 
-    it { is_expected.to be true }
+      context 'when the user is referred' do
+        subject { promotion.eligible?(uncompleted_order) }
+
+        it { is_expected.to be false }
+      end
+
+      context 'when the user is not referred'  do
+        before { user.update_columns(referrer_id: nil) }
+
+        subject { promotion.eligible?(uncompleted_order) }
+
+        it { is_expected.to be false }
+      end
+    end
+
+    context 'when the user has never completed an order' do
+      context 'when the user is referred' do
+        subject { promotion.eligible?(uncompleted_order) }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when the user is not referred' do
+        before { user.update_columns(referrer_id: nil) }
+
+        subject { promotion.eligible?(uncompleted_order) }
+
+        it { is_expected.to be false }
+      end
+    end
   end
 
-  context 'when the user is not referred and orders for the first time' do
-    before { user.update_columns(referrer_id: nil) }
+  describe 'Spree::Promotion#activate' do
+    let(:payload) { { order: uncompleted_order } }
 
-    subject { promotion.eligible?(first_order) }
+    # We don't want to perform the referrer-crediting action at the usual stage of the checkout flow. Instead, in the context of referrals, the appropriate thing is to only credit the user's referrer when the first order is actually completed.
+    it 'should not credit the referrer on promotion activation' do
+      expect(referrer.store_credits).to be_empty
 
-    it { is_expected.to be false }
-  end
+      promotion.activate(payload)
 
-  context 'when the user is referred and has completed at least one order' do
-    subject { promotion.eligible?(second_order) }
-
-    it { is_expected.to be false }
-  end
-
-  context 'when the user is not referred and has completed at least one order'  do
-    before { user.update_columns(referrer_id: nil) }
-
-    subject { promotion.eligible?(second_order) }
-
-    it { is_expected.to be false }
+      expect(referrer.store_credits).to be_empty
+    end
   end
 end

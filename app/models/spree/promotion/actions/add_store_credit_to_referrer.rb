@@ -7,6 +7,10 @@ module Spree
         preference :type, :string, default: 'Non-expiring'
 
         def perform(payload = {})
+          true
+        end
+
+        def perform_at_completion(payload = {})
           order    = payload[:order]
           user     = order.user
           referrer = user.referrer

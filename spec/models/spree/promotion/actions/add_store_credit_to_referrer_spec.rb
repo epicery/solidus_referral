@@ -14,16 +14,28 @@ describe Spree::Promotion::Actions::AddStoreCreditToReferrer, type: :model do
   let(:payload) { { order: order } }
   let(:action) { Spree::Promotion::Actions::AddStoreCreditToReferrer.new }
 
-  describe '#perform' do
+  describe '#perform_at_completion' do
     it 'creates a store credit for the order\'s user\'s referrer' do
+      amount = action.preferred_amount
+
+      expect(store_credits).to be_empty
+
+      action.perform_at_completion(payload)
+
+      expect(store_credits.reload.count).to eql(1)
+      expect(store_credits.first.amount).to eql(amount)
+    end
+  end
+
+  describe '#perform' do
+    it 'does nothing' do
       amount = action.preferred_amount
 
       expect(store_credits).to be_empty
 
       action.perform(payload)
 
-      expect(store_credits.reload.count).to eql(1)
-      expect(store_credits.first.amount).to eql(amount)
+      expect(store_credits.reload.count).to eql(0)
     end
   end
 end
