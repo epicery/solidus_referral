@@ -7,89 +7,119 @@ describe Spree::Order do
   let!(:store_credit_type) { create(:secondary_credit_type) }
   let!(:store_credit_category) { create(:store_credit_category, name: 'Default') }
 
-  let(:credit_referrer_action) { Spree::Promotion::Actions::AddStoreCreditToReferrer.new }
+  let(:referral_action) { Spree::Promotion::Actions::AddStoreCreditToReferrer.new }
+  let(:free_shipping_action) { Spree::Promotion::Actions::FreeShipping.new }
 
   let(:user_is_referred_rule) { Spree::Promotion::Rules::UserIsReferred.new }
   let(:first_order_rule) { Spree::Promotion::Rules::FirstOrder.new }
 
-  let!(:promotion) { create(:promotion, apply_automatically: true, promotion_rules: [user_is_referred_rule, first_order_rule], promotion_actions: [credit_referrer_action]) }
+  let(:free_shipping_promotion) { create(:promotion, apply_automatically: true, promotion_rules: [user_is_referred_rule, first_order_rule], promotion_actions: [free_shipping_action]) }
+  let(:referral_promotion) { create(:promotion, apply_automatically: true, promotion_rules: [user_is_referred_rule, first_order_rule], promotion_actions: [referral_action]) }
 
-  let(:order_ready_to_complete) { create(:order_ready_to_complete, user: user) }
+  let(:first_cart) { create(:order_ready_to_complete, user: user) }
+  let(:second_cart) { create(:order_ready_to_complete, user: user) }
 
-  # In the following tests, we want to trigger PromotionHandler::Cart#activate to check our action is bypassed since we want to perform it on order completion.
+  def add_variant(cart)
+    cart.contents.add(create(:variant))
+  end
 
-  # Adding an item to an existing order will trigger the handler.
+  def complete_cart(cart)
+    add_variant(cart)
+    cart.next! until cart.state == 'confirm'
+    cart.complete!
+  end
 
-  # We then transition the order through `complete` (or not) to verify our custom action is performed (or not).
-  describe 'orders going through transition to `complete`' do
-    context 'when user has already ordered and does so again' do
-      let(:completed_order) do
-        create(:order_ready_to_complete, user: user).tap do |o|
-          o.contents.add(create(:variant))
-          o.next! until o.state == 'confirm'
-          o.complete!
+  # In the following tests, we trigger PromotionHandler::Cart#activate by adding a variant to a Spree::Order in order to check our AddStoreCreditToReferrer action is bypassed, since we want to perform it later on order completion.
+
+  # We then transition the order through `complete` to verify our custom action is performed.
+  describe 'carts transitioning to `complete`' do
+    describe '#trigger_perform_at_completion_in_promotion_actions' do
+      after(:each) { complete_cart(first_cart) }
+
+      context 'when the promotion has one action responding to #perform_at_completion' do
+        before { referral_promotion }
+
+        it 'should call #perform_at_completion once for that action' do
+          action = referral_promotion.actions.first
+
+          expect(action).not_to be_nil
+          expect(action).to eql(referral_action)
+
+          expect(action).to respond_to(:perform_at_completion)
+          expect_any_instance_of(action.class).to receive(:perform_at_completion).once
         end
       end
 
-      context 'when the an older uncompleted order gets "recycled" for completion' do
-        before { order_ready_to_complete; completed_order }
+      context 'when the promotion has no action responding to #perform_at_completion' do
+        before { free_shipping_promotion }
 
-        # This example should NOT fail if we consider Solidus should anticipate stores that wish to "recycle" uncompleted orders.
+        it 'should do nothing' do
+          action = free_shipping_promotion.actions.first
 
-        # In this situation, Spree::Promotion::Rules::FirstOrder#completed_at should return a collection of orders ordered by `completed_at` to ensure we always compare the instantiated order with the the first truly completed order, not the first one provided by the Database.
-        it 'should not trigger the promotion action' # do
- #          expect(referrer.store_credits.count).to eql(1)
- #
- #          order_ready_to_complete.contents.add(create(:variant))
- #          order_ready_to_complete.next! until order_ready_to_complete.state == 'confirm'
- #          order_ready_to_complete.complete!
- #
- #          expect(referrer.store_credits.count).to eql(1)
- #        end
-      end
+          expect(action).not_to be_nil
+          expect(action).to eql(free_shipping_action)
 
-      context 'when the newly completed order was created after the first completed one' do
-        before { completed_order }
-
-        it 'should not trigger the promotion action' do
-          expect(referrer.store_credits.count).to eql(1)
-
-          order_ready_to_complete.contents.add(create(:variant))
-          order_ready_to_complete.next! until order_ready_to_complete.state == 'confirm'
-          order_ready_to_complete.complete!
-
-          expect(referrer.store_credits.count).to eql(1)
+          expect(action).not_to respond_to(:perform_at_completion)
+          expect_any_instance_of(action.class).not_to receive(:perform_at_completion)
         end
       end
     end
 
-    context 'when user has never ordered and does so for the first time' do
-      it 'should trigger the promotion action' do
-        expect(referrer.store_credits.count).to eql(0)
+    describe 'referrer\'s store credits count' do
+      before { referral_promotion }
 
-        order_ready_to_complete.contents.add(create(:variant))
-        order_ready_to_complete.next! until order_ready_to_complete.state == 'confirm'
-        order_ready_to_complete.complete!
+      context 'for the very first time' do
+        it 'should trigger the promotion action' do
+          expect(referrer.store_credits.count).to eql(0)
 
-        expect(referrer.store_credits.count).to eql(1)
+          complete_cart(first_cart)
+
+          expect(referrer.store_credits.count).to eql(1)
+        end
+      end
+
+      context 'after having already ordered' do
+        context 'when an old cart gets "recycled" for completion' do
+          before { first_cart; complete_cart(second_cart) }
+
+          # This example should NOT fail if we consider Solidus should take account of stores that wish to "recycle" uncompleted orders.
+
+          # In this situation, Spree::Promotion::Rules::FirstOrder#completed_at should return a collection of orders ordered by `completed_at` to ensure we always compare the instantiated order with the the first truly completed order, not the first one provided by the Database.
+          it 'should not trigger the promotion action' do
+            pending('Issue with how Solidus handles "recycled" carts')
+            expect(referrer.store_credits.count).to eql(1)
+
+            complete_cart(first_cart)
+
+            expect(referrer.store_credits.count).to eql(1)
+          end
+        end
+
+        context 'when completing a new cart' do
+          before { complete_cart(first_cart) }
+
+          it 'should not trigger the promotion action' do
+            expect(referrer.store_credits.count).to eql(1)
+
+            complete_cart(second_cart)
+
+            expect(referrer.store_credits.count).to eql(1)
+          end
+        end
       end
     end
   end
 
-  describe 'orders in states before reaching `complete`' do
+  describe 'carts in states before `complete`' do
+    before { referral_promotion }
+
     context 'when user has already ordered and orders again' do
-      let!(:completed_order) do
-        create(:order_ready_to_complete, user: user).tap do |o|
-          o.contents.add(create(:variant))
-          o.next! until o.state == 'confirm'
-          o.complete!
-        end
-      end
+      before { complete_cart(first_cart) }
 
       it 'should not trigger the promotion action' do
         expect(referrer.store_credits.count).to eql(1)
 
-        order_ready_to_complete.contents.add(create(:variant))
+        second_cart.contents.add(create(:variant))
 
         expect(referrer.store_credits.count).to eql(1)
       end
@@ -99,7 +129,7 @@ describe Spree::Order do
       it 'should trigger the promotion action' do
         expect(referrer.store_credits.count).to eql(0)
 
-        order_ready_to_complete.contents.add(create(:variant))
+        first_cart.contents.add(create(:variant))
 
         expect(referrer.store_credits.count).to eql(0)
       end
