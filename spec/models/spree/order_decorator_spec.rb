@@ -78,7 +78,7 @@ describe Spree::Order do
         end
 
         it 'should not raise an error' do
-          expect{subject}.not_to raise_error
+          expect{subject}.not_to output("perform_at_completion should be implemented in a sub-class of PromotionAction\n").to_stdout
         end
       end
 
@@ -91,7 +91,7 @@ describe Spree::Order do
           expect(action).not_to be_nil
           expect(action).to eql(free_shipping_action)
 
-          expect{subject}.to raise_error(RuntimeError, 'perform_at_completion should be implemented in a sub-class of PromotionAction')
+          expect{subject}.to output("perform_at_completion should be implemented in a sub-class of PromotionAction\n").to_stdout
         end
       end
     end
