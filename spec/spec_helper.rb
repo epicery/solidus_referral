@@ -39,6 +39,10 @@ require 'solidus_referral/factories'
 
 Capybara.javascript_driver = :webkit
 
+Capybara::Webkit.configure do |config|
+  config.block_unknown_urls
+end
+
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
 

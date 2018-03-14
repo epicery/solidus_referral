@@ -60,7 +60,7 @@ describe Spree::Order do
 
   describe 'carts transitioning to `complete`' do
     describe '#trigger_perform_at_completion_in_promotion_actions' do
-      subject { complete_cart(first_cart) }
+      after(:each) { complete_cart(first_cart) }
 
       context 'when the promotion has one action responding to #perform_at_completion' do
         before { referral_promotion }
@@ -73,12 +73,6 @@ describe Spree::Order do
 
           expect(action).to respond_to(:perform_at_completion)
           expect_any_instance_of(action.class).to receive(:perform_at_completion).once
-
-          subject
-        end
-
-        it 'should not raise an error' do
-          expect{subject}.not_to output("perform_at_completion should be implemented in a sub-class of PromotionAction\n").to_stdout
         end
       end
 
@@ -91,7 +85,7 @@ describe Spree::Order do
           expect(action).not_to be_nil
           expect(action).to eql(free_shipping_action)
 
-          expect{subject}.to output("perform_at_completion should be implemented in a sub-class of PromotionAction\n").to_stdout
+          expect(action).not_to respond_to(:perform_at_completion)
         end
       end
     end
