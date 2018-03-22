@@ -6,9 +6,15 @@ en:
     attributes:
       spree/promotion/rules/user_is_referred:
         description: User must be referred
+      spree/promotion/rules/user_is_not_referred:
+        description: "User should not be referred"
+      spree/promotion/rules/not_the_sponsorship_order:
+        description: "The order should not be the order eligible to the sponsorship promotion (which cannot be combined with any other promotion)"
       spree/promotion/actions/add_store_credit_to_referrer:
         description: Add store credit to referrer
   spree:
     eligibility_errors:
       messages:
         user_is_not_referred: The user is not referred by anyone.
+        user_is_referred: "User is referred. Promotion cannot be applied."
+        order_is_the_sponsorship_order: "The order is the order eligible to the sponsorship promotion and cannot be combined with any other promotion. Promotion cannot be applied."
