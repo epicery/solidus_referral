@@ -1,6 +1,8 @@
 SolidusReferral
 ===============
 
+[![CircleCI](https://circleci.com/gh/epicery/solidus_referral.svg?style=svg)](https://circleci.com/gh/epicery/solidus_referral)
+
 Introduction goes here.
 
 Installation
