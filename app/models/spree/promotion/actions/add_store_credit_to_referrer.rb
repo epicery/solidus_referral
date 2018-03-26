@@ -6,7 +6,7 @@ module Spree
         preference :category, :string, default: 'Default'
         preference :type, :string, default: 'Non-expiring'
 
-        def perform(payload = {})
+        def perform(_payload = {})
           true
         end
 

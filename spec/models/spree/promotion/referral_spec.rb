@@ -4,7 +4,7 @@ describe 'Add store credit to referrer on first order' do
   let(:referrer) { create(:user) }
   let(:user) { create(:user, referrer: referrer) }
 
-  let(:uncompleted_order) { create(:order, user: user)}
+  let(:uncompleted_order) { create(:order, user: user) }
 
   let!(:store_credit_type) { create(:secondary_credit_type) }
   let!(:store_credit_category) { create(:store_credit_category, name: 'Default') }
