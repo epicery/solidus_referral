@@ -20,24 +20,39 @@ describe Spree::Promotion::Rules::UserIsReferred, type: :model do
   end
 
   describe 'eligibility' do
-    let(:user) { create(:user) }
     let(:order) { create(:order, user: user) }
 
     subject { rule.eligible?(order) }
 
-    context 'when the user has been referred by someone' do
-      let!(:referrer) { create(:user, referred_users: [user]) }
+    context 'anonymous cart' do
+      let(:user) { nil }
 
-      it { is_expected.to be true }
-    end
-
-    context 'when the user has not been referred by anyone' do
       it { is_expected.to be false }
 
       it "sets an error message" do
         rule.eligible?(order)
         expect(rule.eligibility_errors.full_messages.first).
-          to eq "The user is not referred by anyone."
+          to eq "You need to login before applying this coupon code."
+      end
+    end
+
+    context 'cart with user' do
+      let(:user) { create(:user) }
+
+      context 'when the user has been referred by someone' do
+        let!(:referrer) { create(:user, referred_users: [user]) }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when the user has not been referred by anyone' do
+        it { is_expected.to be false }
+
+        it "sets an error message" do
+          rule.eligible?(order)
+          expect(rule.eligibility_errors.full_messages.first).
+            to eq "The user is not referred by anyone."
+        end
       end
     end
   end
