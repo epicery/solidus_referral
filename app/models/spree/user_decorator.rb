@@ -4,13 +4,23 @@ Spree::User.class_eval do
 
   before_create :ensure_user_has_referral_code
 
+  class << self
+    private
+
+    def generate_referral_code_defined?
+      public_method_defined?(:generate_referral_code)    ||
+      private_method_defined?(:generate_referral_code)   ||
+      protected_method_defined?(:generate_referral_code)
+    end
+  end
+
   def ensure_user_has_referral_code
     self.referral_code ||= generate_referral_code
   end
 
   private
 
-  unless instance_methods.include? :generate_referral_code
+  unless generate_referral_code_defined?
     def generate_referral_code
       prefix    = 'REF'
       length    = 6
