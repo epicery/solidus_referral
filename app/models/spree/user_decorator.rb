@@ -10,20 +10,22 @@ Spree::User.class_eval do
 
   private
 
-  def generate_referral_code
-    prefix    = 'REF'
-    length    = 6
-    possible  = (0..9).to_a
+  unless instance_methods.include? :generate_referral_code
+    def generate_referral_code
+      prefix    = 'REF'
+      length    = 6
+      possible  = (0..9).to_a
 
-    loop do
-      # Make a random number.
-      random = "#{prefix}#{(0...length).map { possible.sample }.join}"
-      # Use the random number if no other order exists with it.
-      if Spree::User.exists?(referral_code: random)
-        # If over half of all possible options are taken add another digit.
-        length += 1 if Spree::User.count > (10**length / 2)
-      else
-        break random
+      loop do
+        # Make a random number.
+        random = "#{prefix}#{(0...length).map { possible.sample }.join}"
+        # Use the random number if no other order exists with it.
+        if Spree::User.exists?(referral_code: random)
+          # If over half of all possible options are taken add another digit.
+          length += 1 if Spree::User.count > (10**length / 2)
+        else
+          break random
+        end
       end
     end
   end
