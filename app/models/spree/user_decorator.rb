@@ -8,9 +8,9 @@ Spree::User.class_eval do
     private
 
     def generate_referral_code_defined?
-      public_method_defined?(:generate_referral_code)    ||
-      private_method_defined?(:generate_referral_code)   ||
-      protected_method_defined?(:generate_referral_code)
+      public_method_defined?(:generate_referral_code) ||
+        private_method_defined?(:generate_referral_code) ||
+        protected_method_defined?(:generate_referral_code)
     end
   end
 
